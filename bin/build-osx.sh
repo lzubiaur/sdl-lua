@@ -25,3 +25,7 @@ cmake -G "Unix Makefiles" \
 
 # Build and install the project using the Release config
 cmake --build . --target all --config $build && echo $msg
+
+pushd bin > /dev/null
+run-tests
+popd > /dev/null
