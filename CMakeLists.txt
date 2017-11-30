@@ -23,8 +23,8 @@ set(CMAKE_RUNTIME_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/bin)
 # set(CMAKE_LIBRARY_OUTPUT_DIRECTORY_RELEASE ${CMAKE_BINARY_DIR}/lib)
 # set(CMAKE_RUNTIME_OUTPUT_DIRECTORY_RELEASE ${CMAKE_BINARY_DIR}/bin)
 
-# Global compiler flags
-list(APPEND CMAKE_CXX_FLAGS "-std=c++17")
+# C++17 would be nice but still not fully supported on some platform like XCode
+list(APPEND CMAKE_CXX_FLAGS "-std=c++14")
 add_definitions(-Wall)
 
 # Include the dependencies, tests and source
