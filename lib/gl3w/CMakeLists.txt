@@ -43,34 +43,13 @@ add_custom_target(
 )
 
 # create gl3w target
-add_library(${PROJECT_NAME} INTERFACE)
+add_library(${PROJECT_NAME} STATIC ${SOURCE_FILES})
 
 # make gl3w target depend on the generator target
 add_dependencies(${PROJECT_NAME} gl3w_gen)
 
 # let remote project know about source and header files
-target_sources(${PROJECT_NAME} INTERFACE ${SOURCE_FILES})
-target_include_directories(${PROJECT_NAME} INTERFACE
-	$<BUILD_INTERFACE:${HEADER_DIR}>
-	$<INSTALL_INTERFACE:include>
-)
-target_include_directories(${PROJECT_NAME} INTERFACE ${EXTERNAL_INCLUDE_DIRS})
+target_include_directories(${PROJECT_NAME} PUBLIC ${HEADER_DIR})
+target_include_directories(${PROJECT_NAME} PUBLIC ${EXTERNAL_INCLUDE_DIRS})
 # let remote project know which libraries need to be linked
-target_link_libraries(${PROJECT_NAME} INTERFACE ${EXTERNAL_LIBRARIES} ${CMAKE_DL_LIBS})
-
-set(MODULE_PATH "${CMAKE_CURRENT_SOURCE_DIR}/cmake")
-set(BUILD_CMAKE_DIR "${CMAKE_CURRENT_BINARY_DIR}/cmake")
-
-# export targets for remote projects (i.e. make find_package(gl3w) work)
-configure_file(
-	"${MODULE_PATH}/${PROJECT_NAME}-config.cmake"
-	"${BUILD_CMAKE_DIR}/${PROJECT_NAME}-config.cmake"
-	COPYONLY
-)
-
-export(
-	TARGETS ${PROJECT_NAME}
-	FILE "${BUILD_CMAKE_DIR}/${PROJECT_NAME}-targets.cmake"
-)
-
-export(PACKAGE ${PROJECT_NAME})
+target_link_libraries(${PROJECT_NAME} ${EXTERNAL_LIBRARIES} ${CMAKE_DL_LIBS})
