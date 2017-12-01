@@ -1,28 +1,76 @@
-cmake_minimum_required(VERSION 2.8)
+cmake_minimum_required(VERSION 3.1.3 FATAL_ERROR)
 
-project(libgl3w)
-include_directories(include)
-add_library(gl3w STATIC src/gl3w.c)
-target_include_directories(gl3w PUBLIC ${PROJECT_SOURCE_DIR}/include)
+project(gl3w)
 
-if(BUILD_LINUX)
-  # dl (libdl.so) for dynamic loaded library (dlopen, dlsym...)
-  # Note that gl3w has been hacked (gl3w_gen.py) so there's no need
-  # to link against libGL (required because of glXGetProcAddress)
-  target_link_libraries(gl3w dl)
-  # Since this static library will be linked against a shared library (gl3w module)
-  # it has to be build with the PIC flag (position-independent code)
-  target_compile_options(gl3w PUBLIC -fPIC)
-elseif(BUILD_OSX)
-  # Enable objective-c (doesn't seem to be required though)
-  target_compile_options(gl3w PRIVATE -x objective-c)
-  # Setting "-x objective-c" with CMAKE_C_FLAGS doesn't work when building with
-  # Makefile generator (though it works when building using the XCode generator)
-  # set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -x objective-c")
-  # Linking against either Cocoa, Fondation or AppKit framework is required
-  target_link_libraries(gl3w
-  # "-framework Cocoa"
-  # "-framework AppKit"
-  "-framework Foundation"
-  )
-endif()
+set(CMAKE_VERBOSE_MAKEFILE false)
+set(CMAKE_POSITION_INDEPENDENT_CODE ON) # -fPIC
+
+set(SOURCE_DIR ${CMAKE_CURRENT_BINARY_DIR}/src)
+set(HEADER_DIR ${CMAKE_CURRENT_BINARY_DIR}/include)
+
+set(HEADER_FILES
+	"${HEADER_DIR}/GL/gl3w.h"
+	"${HEADER_DIR}/GL/glcorearb.h"
+)
+
+set(SOURCE_FILES
+	"${SOURCE_DIR}/gl3w.c"
+)
+
+# add and depend on OpenGL
+find_package(OpenGL REQUIRED)
+set(EXTERNAL_INCLUDE_DIRS ${EXTERNAL_INCLUDE_DIRS} ${OPENGL_INCLUDE_DIR})
+set(EXTERNAL_LIBRARIES ${EXTERNAL_LIBRARIES} ${OPENGL_LIBRARIES})
+
+# add command to create the header and source files
+add_custom_command(
+	OUTPUT
+		"${SOURCE_DIR}/gl3w.c"
+		"${HEADER_DIR}/GL/gl3w.h"
+		"${HEADER_DIR}/GL/glcorearb.h"
+	COMMAND python ${CMAKE_CURRENT_SOURCE_DIR}/gl3w_gen.py
+	DEPENDS ${CMAKE_CURRENT_SOURCE_DIR}/gl3w_gen.py
+	WORKING_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}
+)
+
+# add pseudo target that depends on the generated files
+add_custom_target(
+	gl3w_gen ALL
+	DEPENDS
+		"${SOURCE_DIR}/gl3w.c"
+		"${HEADER_DIR}/GL/gl3w.h"
+		"${HEADER_DIR}/GL/glcorearb.h"
+)
+
+# create gl3w target
+add_library(${PROJECT_NAME} INTERFACE)
+
+# make gl3w target depend on the generator target
+add_dependencies(${PROJECT_NAME} gl3w_gen)
+
+# let remote project know about source and header files
+target_sources(${PROJECT_NAME} INTERFACE ${SOURCE_FILES})
+target_include_directories(${PROJECT_NAME} INTERFACE
+	$<BUILD_INTERFACE:${HEADER_DIR}>
+	$<INSTALL_INTERFACE:include>
+)
+target_include_directories(${PROJECT_NAME} INTERFACE ${EXTERNAL_INCLUDE_DIRS})
+# let remote project know which libraries need to be linked
+target_link_libraries(${PROJECT_NAME} INTERFACE ${EXTERNAL_LIBRARIES} ${CMAKE_DL_LIBS})
+
+set(MODULE_PATH "${CMAKE_CURRENT_SOURCE_DIR}/cmake")
+set(BUILD_CMAKE_DIR "${CMAKE_CURRENT_BINARY_DIR}/cmake")
+
+# export targets for remote projects (i.e. make find_package(gl3w) work)
+configure_file(
+	"${MODULE_PATH}/${PROJECT_NAME}-config.cmake"
+	"${BUILD_CMAKE_DIR}/${PROJECT_NAME}-config.cmake"
+	COPYONLY
+)
+
+export(
+	TARGETS ${PROJECT_NAME}
+	FILE "${BUILD_CMAKE_DIR}/${PROJECT_NAME}-targets.cmake"
+)
+
+export(PACKAGE ${PROJECT_NAME})
