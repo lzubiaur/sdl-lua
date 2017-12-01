@@ -1,5 +1,12 @@
 #!/bin/sh
 
+# generate GL3W if needed
+if ! [ -f "lib/gl3w/src/gl3w.c" ]; then
+  pushd lib/gl3w
+  ./gl3w_gen.py
+  popd
+fi
+
 build='Release'
 if [ "$1" == "debug" ]; then
   build='Debug'
@@ -24,8 +31,4 @@ cmake -G "Unix Makefiles" \
     ../..
 
 # Build and install the project using the Release config
-cmake --build . --target all --config $build && echo $msg
-
-pushd bin > /dev/null
-run-tests
-popd > /dev/null
+cmake --build . --target all --config $build && echo $msg && pushd bin > /dev/null; run-tests "$2"; popd > /dev/null

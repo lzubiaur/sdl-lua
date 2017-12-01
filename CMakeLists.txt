@@ -29,5 +29,5 @@ add_definitions(-Wall)
 
 # Include the dependencies, tests and source
 add_subdirectory(lib)
-# add_subdirectory(src)
+add_subdirectory(src)
 add_subdirectory(tests)
